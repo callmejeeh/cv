@@ -203,8 +203,8 @@ h1, h2, h3, h4, h5, h6, figure {
   background-position: center center;
   background-repeat: no-repeat;
   position: relative;
-  height: 200px;
-  width: 200px;
+  height: 250px;
+  width: 250px;
   margin: 0 auto;
   margin-bottom: 30px;
   -webkit-border-radius: 50%;
@@ -214,9 +214,17 @@ h1, h2, h3, h4, h5, h6, figure {
 }
 
 .logo {
-  height: 50px;
-  width: 50px;
-  position: absolute;
+  background-size: cover !important;
+  height: 70px;
+  width: 70px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  position: relative;
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  -ms-border-radius: 50%;
+  border-radius: 50%;
+  margin: -56px auto 16px;
 }
 #fh5co-header .display-tc .fh5co-social-icons li a,
 .fh5co-cover .display-tc .fh5co-social-icons li a {
