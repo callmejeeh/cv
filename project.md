@@ -1,9 +1,3 @@
----
-layout: cards
-title: Projet Phaser
----
-
-
 # Projet de codage
 
 ## Phaser – Création de jeux 2D en HTML5
@@ -28,5 +22,3 @@ L’objectif est de combiner **programmation web** et **création de jeux** pour
 - **Sprites et animations** : personnages, ennemis, objets animés.  
 - **Interactions utilisateur** : clavier, souris, clics.  
 - **Mécaniques de jeu** : collisions, scores, chronomètres, règles du gameplay.
-
----

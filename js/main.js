@@ -147,3 +147,8 @@
 
 
 }());
+
+    document.getElementById('projetos').addEventListener('click', () => {
+      // abre a página que renderiza o markdown
+      window.location.href = 'projetos.md';
+    });
