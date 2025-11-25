@@ -123,7 +123,7 @@
 
     <div id="start-screen">
         <h1>Catch the Dot</h1>
-        <p>Arrêtez la souris pendant 2 secondes pour faire apparaître la cible et cliquez dessus avant qu'elle ne disparaisse !</p>
+        <p>Arrêtez la souris pendant 1 seconde pour faire apparaître la cible et cliquez dessus avant qu'elle ne disparaisse !</p>
         <p>Testez vos reflexes pendant 60 secondes.</p>
         <button id="start-button" class="action-button">START GAME</button>
     </div>
@@ -147,18 +147,50 @@
         const restartButton = document.getElementById('restart-button');
         const startButton = document.getElementById('start-button'); 
         
-        let moveTimer;      
-        let gameTimer;      
-        let timerInterval;  
+        let moveTimer;      
+        let gameTimer;      
+        let timerInterval;  
         let score = 0;
         
-        const DELAY = 2000; 
+        const DELAY = 1000; 
         const GAME_TIME = 1000; 
         const GAME_DURATION = 60; 
         let timeRemaining = GAME_DURATION;
         
         let isTargetActive = false;
         let isGameRunning = false; 
+
+        // --- VARIÁVEIS DE ÁUDIO (AGORA EM minúsculas) ---
+        let audioSuccess = null; // Renomeado
+        let audioError = null;   // Renomeado
+        let audioEnd = null;     // Renomeado
+        let audioLoaded = false;
+
+        // Carrega os arquivos de áudio
+        function loadAudio() {
+            if (audioLoaded) return;
+            
+            // Inicializa os objetos Audio
+            // GARANTA QUE ESSES NOMES ESTÃO EXATAMENTE IGUAIS AOS SEUS ARQUIVOS:
+            audioSuccess = new Audio('./audio/success.wav');
+            audioError = new Audio('./audio/error.wav');
+            audioEnd = new Audio('./audio/timeup.wav');
+
+            // --- SOLUÇÃO DE FORÇA BRUTA PARA O AUTO-PLAY ---
+            // Tenta dar play no som de sucesso. Se o navegador bloquear, ele cai no 'catch'.
+            // Não usamos mais volume 0, apenas tentamos o play normal, que é ativado
+            // pelo clique do usuário no botão "START GAME" (que chama loadAudio()).
+            audioSuccess.play().then(() => {
+                // Sucesso: Áudio está liberado.
+                audioLoaded = true;
+            }).catch(e => {
+                // O navegador BLOQUEOU a reprodução automática.
+                console.warn("Navegador bloqueou a reprodução automática. O som será ativado no primeiro acerto válido.");
+                audioLoaded = true; // Marca como carregado para não tentar o load de novo
+            });
+            // ------------------------------------------------
+        }
+
 
         // --- FUNÇÕES DE CONTROLE E JOGO ---
 
@@ -176,7 +208,9 @@
         }
 
         function updateScoreDisplay() {
-            scoreDisplay.innerHTML = `Score: ${score}`;
+            // Se necessário, ajuste para singular/plural
+            let unit = (score <= 1) ? "point" : "points"; 
+            scoreDisplay.innerHTML = `Score : ${score} ${unit}`;
         }
         
         function showGameHUD(show) {
@@ -192,11 +226,11 @@
             updateScoreDisplay(); 
             showGameHUD(true);
 
-            timerDisplay.innerHTML = `Tempo: ${timeRemaining}s`;
+            timerDisplay.innerHTML = `Temps: ${timeRemaining}s`;
 
             timerInterval = setInterval(() => {
                 timeRemaining--;
-                timerDisplay.innerHTML = `Tempo: ${timeRemaining}s`;
+                timerDisplay.innerHTML = `Temps: ${timeRemaining}s`;
 
                 if (timeRemaining <= 0) {
                     endGame();
@@ -219,12 +253,15 @@
             endGameScreen.style.display = 'flex';
             showGameHUD(false); 
 
-            // CORREÇÃO CRÍTICA: Garantir que a tela de início esteja oculta
+            // Toca o som de fim de jogo
+            if(audioEnd) { audioEnd.play(); } // Verificação de segurança
+            
             startScreen.style.display = 'none'; 
         }
         
         function resetGame() {
-            // CORREÇÃO CRÍTICA: Usa 'display: none' para remover a sobreposição de cliques
+            // CORREÇÃO CRÍTICA: Chamada do loadAudio
+            loadAudio();
             startScreen.style.display = 'none';
             endGameScreen.style.display = 'none';
 
@@ -236,20 +273,14 @@
             updateScoreDisplay(); 
             timerDisplay.innerHTML = `Temps : ${GAME_DURATION}s`;
 
-            // O ponto deve ser visível (como cursor) para a primeira parada
             targetDot.style.opacity = '1'; 
             targetDot.classList.remove('blinking');
 
-            // Inicia o timer e o estado de jogo imediatamente após o clique
             startGameTimer();
         }
 
         function launchNewTarget(launchX, launchY) {
             if (!isGameRunning || isTargetActive) return;
-
-            // Não precisa de verificação de startGameTimer aqui, pois resetGame já iniciou.
-            // Mas a linha a seguir é inofensiva e garante a inicialização:
-            // if (!isGameRunning) { startGameTimer(); } 
 
             clearTimeout(gameTimer); 
             isTargetActive = true; 
@@ -274,6 +305,12 @@
             
             targetDot.style.opacity = '0';
             targetDot.classList.remove('blinking');
+            
+            // Toca o som de ERRO (NOVO!)
+            if(audioError) {
+                audioError.currentTime = 0;
+                audioError.play();
+            }
 
             updateFeedback("Temps écoulé !", 'red', x, y);
         }
@@ -281,7 +318,6 @@
         // --- HANDLERS DE EVENTOS ---
 
         targetDot.addEventListener('click', function(event) {
-            // CORREÇÃO CRÍTICA: O clique só é válido se o alvo estiver ativo e o jogo rodando
             if (!isGameRunning || !isTargetActive) return; 
 
             clearTimeout(gameTimer); 
@@ -291,8 +327,14 @@
 
             targetDot.style.opacity = '0';
             targetDot.classList.remove('blinking');
+
+            // Toca o som de ACERTO (NOVO!)
+            if(audioSuccess) {
+                audioSuccess.currentTime = 0;
+                audioSuccess.play();
+            }
             
-            updateFeedback("Touché ! (+1)", 'lime', event.clientX, event.clientY);
+            updateFeedback("Touché ! (+1 point)", 'lime', event.clientX, event.clientY);
         });
 
         restartButton.addEventListener('click', resetGame);
@@ -305,9 +347,7 @@
             const x = event.clientX;
             const y = event.clientY;
 
-            // Se o jogo NÃO está rodando (tela de início), o ponto segue o mouse como cursor.
             if (!isGameRunning) {
-                // Apenas segue o mouse se nenhuma tela modal estiver visível (para evitar bugs de foco)
                 if (startScreen.style.display !== 'flex' && endGameScreen.style.display !== 'flex') {
                     targetDot.style.left = `${x}px`;
                     targetDot.style.top = `${y}px`;
@@ -315,19 +355,14 @@
                 }
             }
             
-            // Se o jogo está rodando E não há alvo ativo, a próxima parada de 2s lança o alvo.
             if (isGameRunning && !isTargetActive) {
-                 moveTimer = setTimeout(() => launchNewTarget(x, y), DELAY);
+                moveTimer = setTimeout(() => launchNewTarget(x, y), DELAY);
             }
         });
 
         // --- INICIALIZAÇÃO ---
 
-        // Oculta a HUD e os elementos de jogo na carga inicial
         showGameHUD(false);
         targetDot.style.opacity = '0'; 
 
     </script>
-
-</body>
-</html>
