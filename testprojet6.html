@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catch the Dot</title>
+    <style>
+        body {
+            height: 100vh;
+            margin: 0;
+            background-color: #302f31;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            overflow: hidden; 
+        }
+
+        /* FEEDBACK DE ACERTO/ERRO */
+        #coordenadas {
+            position: absolute;
+            font-size: 1.2em;
+            padding: 10px 15px;
+            background-color: #343e3f;
+            color: white;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            pointer-events: none; /* ESSENCIAL: Impede que este div bloqueie o clique */
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            transform: translate(-50%, -150%); 
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        /* ALVO CLICÁVEL */
+        #blinking-dot {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #9c2551; 
+            border: 3px solid #bd7dd8;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.1s;
+            z-index: 1001;
+            transform: translate(-50%, -50%); 
+            cursor: pointer;
+        }
+        
+        @keyframes blink {
+            0% { transform: scale(1) translate(-50%, -50%); }
+            50% { transform: scale(1.3) translate(-50%, -50%); }
+            100% { transform: scale(1) translate(-50%, -50%); }
+        }
+        .blinking {
+            animation: blink 0.5s infinite alternate;
+        }
+
+        /* Pontuação e Timer (HUD do Jogo) */
+        #score-display, #game-timer {
+            position: fixed;
+            top: 20px;
+            padding: 10px 15px;
+            background-color: #343e3f;
+            color: #bd7dd8;
+            border-radius: 5px;
+            font-size: 1.5em;
+            font-weight: bold;
+            z-index: 2000;
+            opacity: 0; 
+            transition: opacity 0.3s;
+        }
+        #score-display { right: 20px; }
+        #game-timer { left: 20px; color: #d89c25; }
+
+        /* Telas de Início e Fim de Jogo (Modais) */
+        #start-screen, #end-game-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            color: white;
+            display: flex; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 3000;
+            /* NOVO: Remove a capacidade de clicar através do modal, mas permite que o conteúdo do modal seja clicado */
+            pointer-events: all;
+        }
+        #end-game-screen {
+             display: none; 
+        }
+        .action-button {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            background-color: #9c2551;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+        }
+        .action-button:hover {
+            background-color: #d81b60;
+        }
+        #final-score {
+            font-size: 4em;
+            color: #bd7dd8;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="coordenadas"></div>
+    <div id="blinking-dot"></div>
+    <div id="score-display">Score: 0</div>
+    <div id="game-timer">Tempo: 60s</div>
+
+    <div id="start-screen">
+        <h1>Catch the Dot</h1>
+        <p>Arrêtez la souris pendant 1 seconde pour faire apparaître la cible et cliquez dessus avant qu'elle ne disparaisse !</p>
+        <p>Testez vos reflexes pendant 60 secondes.</p>
+        <button id="start-button" class="action-button">START GAME</button>
+    </div>
+
+    <div id="end-game-screen">
+        <h1>C'EST FINI</h1>
+        <p>Votre score :</p>
+        <div id="final-score">0 POINTS</div>
+        <button id="restart-button" class="action-button">RECOMMENCER</button>
+    </div>
+
+    <script>
+        const feedbackDisplay = document.getElementById('coordenadas');
+        const targetDot = document.getElementById('blinking-dot');
+        const scoreDisplay = document.getElementById('score-display');
+        const timerDisplay = document.getElementById('game-timer');
+        const endGameScreen = document.getElementById('end-game-screen');
+        const startScreen = document.getElementById('start-screen'); 
+        const finalScoreDisplay = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-button');
+        const startButton = document.getElementById('start-button'); 
+        
+        let moveTimer;      
+        let gameTimer;      
+        let timerInterval;  
+        let score = 0;
+        
+        const DELAY = 1000; 
+        const GAME_TIME = 1000; 
+        const GAME_DURATION = 60; 
+        let timeRemaining = GAME_DURATION;
+        
+        let isTargetActive = false;
+        let isGameRunning = false; 
+        
+        let audioSuccess = null; 
+        let audioError = null;   
+        let audioEnd = null;     
+        let audioLoaded = false;
+
+        // Carrega os arquivos de áudio
+        function loadAudio() {
+            if (audioLoaded) return;
+            
+            // Inicializa os objetos Audio
+            // GARANTA QUE ESSES NOMES ESTÃO EXATAMENTE IGUAIS AOS SEUS ARQUIVOS:
+            audioSuccess = new Audio('./audio/success.wav');
+            audioError = new Audio('./audio/error.wav');
+            audioEnd = new Audio('./audio/timeup.wav');
+
+            // --- SOLUÇÃO DE FORÇA BRUTA PARA O AUTO-PLAY ---
+            // Tenta dar play no som de sucesso. Se o navegador bloquear, ele cai no 'catch'.
+            // Não usamos mais volume 0, apenas tentamos o play normal, que é ativado
+            // pelo clique do usuário no botão "START GAME" (que chama loadAudio()).
+            audioSuccess.play().then(() => {
+                // Sucesso: Áudio está liberado.
+                audioLoaded = true;
+            }).catch(e => {
+                console.warn("Navegador bloqueou a reprodução automática. O som será ativado no primeiro acerto válido.");
+                audioLoaded = true;
+            });
+        }
+
+
+        // --- FUNÇÕES DE CONTROLE E JOGO ---
+
+        function updateFeedback(message, color, x, y) {
+            feedbackDisplay.style.backgroundColor = color;
+            feedbackDisplay.innerHTML = message;
+            
+            feedbackDisplay.style.left = `${x}px`;
+            feedbackDisplay.style.top = `${y}px`;
+            feedbackDisplay.style.transform = `translate(-50%, -150%)`; 
+            
+            feedbackDisplay.style.opacity = '1';
+            
+            setTimeout(() => { feedbackDisplay.style.opacity = '0'; }, 800);
+        }
+
+        function updateScoreDisplay() {
+            // Se necessário, ajuste para singular/plural
+            let unit = (score <= 1) ? "point" : "points"; 
+            scoreDisplay.innerHTML = `Score : ${score} ${unit}`;
+        }
+        
+        function showGameHUD(show) {
+            scoreDisplay.style.opacity = show ? '1' : '0';
+            timerDisplay.style.opacity = show ? '1' : '0';
+        }
+
+        function startGameTimer() {
+            if (isGameRunning) return;
+            isGameRunning = true;
+            timeRemaining = GAME_DURATION;
+            score = 0;
+            updateScoreDisplay(); 
+            showGameHUD(true);
+
+            timerDisplay.innerHTML = `Temps: ${timeRemaining}s`;
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                timerDisplay.innerHTML = `Temps: ${timeRemaining}s`;
+
+                if (timeRemaining <= 0) {
+                    endGame();
+                }
+            }, 1000); 
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            clearTimeout(moveTimer); 
+            clearTimeout(gameTimer);
+
+            isGameRunning = false;
+            isTargetActive = false;
+
+            targetDot.style.opacity = '0';
+            targetDot.classList.remove('blinking');
+            
+            finalScoreDisplay.innerHTML = `${score} POINTS`;
+            endGameScreen.style.display = 'flex';
+            showGameHUD(false); 
+
+            // Toca o som de fim de jogo
+            if(audioEnd) { audioEnd.play(); } // Verificação de segurança
+            
+            startScreen.style.display = 'none'; 
+        }
+        
+        function resetGame() {
+            loadAudio();
+            startScreen.style.display = 'none';
+            endGameScreen.style.display = 'none';
+
+            score = 0; 
+            timeRemaining = GAME_DURATION; 
+            isTargetActive = false;
+            isGameRunning = false; 
+            
+            updateScoreDisplay(); 
+            timerDisplay.innerHTML = `Temps : ${GAME_DURATION}s`;
+
+            targetDot.style.opacity = '1'; 
+            targetDot.classList.remove('blinking');
+
+            startGameTimer();
+        }
+
+        function launchNewTarget(launchX, launchY) {
+            if (!isGameRunning || isTargetActive) return;
+
+            clearTimeout(gameTimer); 
+            isTargetActive = true; 
+            
+            const randomX = Math.random() * (window.innerWidth - 100) + 50;
+            const randomY = Math.random() * (window.innerHeight - 100) + 50;
+
+            targetDot.style.left = `${randomX}px`;
+            targetDot.style.top = `${randomY}px`;
+            targetDot.style.opacity = '1';
+            targetDot.classList.add('blinking');
+            
+            gameTimer = setTimeout(missTarget, GAME_TIME);
+        }
+
+        function missTarget() {
+            if (!isGameRunning) return;
+
+            isTargetActive = false;
+            const x = parseFloat(targetDot.style.left);
+            const y = parseFloat(targetDot.style.top);
+            
+            targetDot.style.opacity = '0';
+            targetDot.classList.remove('blinking');
+            
+            // Toca o som de ERRO (NOVO!)
+            if(audioError) {
+                audioError.currentTime = 0;
+                audioError.play();
+            }
+
+            updateFeedback("Temps écoulé !", 'red', x, y);
+        }
+
+        // --- HANDLERS DE EVENTOS ---
+
+        targetDot.addEventListener('click', function(event) {
+            if (!isGameRunning || !isTargetActive) return; 
+
+            clearTimeout(gameTimer); 
+            isTargetActive = false; 
+            score++;
+            updateScoreDisplay();
+
+            targetDot.style.opacity = '0';
+            targetDot.classList.remove('blinking');
+
+            // Toca o som de ACERTO
+            if(audioSuccess) {
+                audioSuccess.currentTime = 0;
+                audioSuccess.play();
+            }
+            
+            updateFeedback("Touché ! (+1 point)", 'lime', event.clientX, event.clientY);
+        });
+
+        restartButton.addEventListener('click', resetGame);
+        startButton.addEventListener('click', resetGame);
+
+        // Lógica de Debounce
+        document.addEventListener('mousemove', function(event) {
+            clearTimeout(moveTimer); 
+            
+            const x = event.clientX;
+            const y = event.clientY;
+
+            if (!isGameRunning) {
+                if (startScreen.style.display !== 'flex' && endGameScreen.style.display !== 'flex') {
+                    targetDot.style.left = `${x}px`;
+                    targetDot.style.top = `${y}px`;
+                    targetDot.style.opacity = '1';
+                }
+            }
+            
+            if (isGameRunning && !isTargetActive) {
+                moveTimer = setTimeout(() => launchNewTarget(x, y), DELAY);
+            }
+        });
+
+        // --- INICIALIZAÇÃO ---
+
+        showGameHUD(false);
+        targetDot.style.opacity = '0'; 
+
+    </script>
