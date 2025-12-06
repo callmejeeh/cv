@@ -1,33 +1,22 @@
 # cv
 Vous trouverez ici les informations professionelles me concernant
 
-flowchart TD
-    A([Start Screen])
-    B{Select Difficulty<br>and Start Game}
-    C[Initialize Timer & Score]
-    D[Gameplay Loop]
-    E{Mouse stops<br>for required delay}
-    F[Show Target (Dot)]
-    G{Click on Dot?}
-    H[Add Point, Feedback, Hide Dot]
-    I[Miss Feedback, Hide Dot]
-    J{Time Remaining?}
-    K[End Game Screen]
-    L{Restart?}
-    M([End])
-
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E -- yes --> F
+```mermaid
+---
+config:
+  theme: redux
+---
+flowchart TB
+    A(["Commencer"]) --> B{"Sélectionner difficulté"}
+    B --> C["Easy"] & D["Medium"] & E["Hard"] & F["Expert"]
+    C --> G["Montrer HUD"]
+    D --> G
+    E --> G
     F --> G
-    G -- yes --> H
-    H --> J
-    G -- no (timer up) --> I
-    I --> J
-    J -- yes --> D
-    J -- no --> K
+    G --> H["Countdown"]
+    H --> I["Montrer cible"]
+    I --> J["Cliquer"] & K["Temps écoulé"]
+    J --> L["Temps terminé"]
     K --> L
-    L -- yes --> B
-    L -- no --> M
+    L --> M["Recommencer"]
+    M --> A
