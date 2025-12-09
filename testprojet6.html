@@ -13,7 +13,7 @@
             overflow: hidden; 
         }
 
-        /* FEEDBACK DE ACERTO/ERRO */
+        /* FEEDBACK */
         #coordenadas {
             position: absolute;
             font-size: 1.2em;
@@ -22,7 +22,7 @@
             color: white;
             border-radius: 5px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
-            pointer-events: none; /* ESSENCIAL: Impede que este div bloqueie o clique */
+            pointer-events: none; 
             opacity: 0;
             transition: opacity 0.2s;
             z-index: 1000;
@@ -31,13 +31,13 @@
             font-weight: bold;
         }
         
-        /* ALVO CLICÁVEL */
+        /* Cible */
         #blinking-dot {
             position: absolute;
             width: 30px;
             height: 30px;
-            background-color: #9c2551; 
-            border: 3px solid #bd7dd8;
+            background-color: #25639c; 
+            border: 3px solid #330666;
             border-radius: 50%;
             opacity: 0;
             transition: opacity 0.2s, transform 0.1s;
@@ -55,7 +55,7 @@
             animation: blink 0.5s infinite alternate;
         }
 
-        /* Pontuação e Timer (HUD do Jogo) */
+        /* HUD */
         #score-display, #game-timer {
             position: fixed;
             top: 20px;
@@ -96,7 +96,7 @@
         .action-button {
             padding: 15px 30px;
             font-size: 1.5em;
-            background-color: #9c2551;
+            background-color: #147759;
             color: white;
             border: none;
             border-radius: 8px;
@@ -105,7 +105,7 @@
             margin-top: 20px;
         }
         .action-button:hover {
-            background-color: #d81b60;
+            background-color: #052941;
         }
         #final-score {
             font-size: 4em;
@@ -125,6 +125,14 @@
         <h1>Catch the Dot</h1>
         <p>Arrêtez la souris pendant 1 seconde pour faire apparaître la cible et cliquez dessus avant qu'elle ne disparaisse !</p>
         <p>Testez vos reflexes pendant 60 secondes.</p>
+        
+        <h2>SÉLECTIONNEZ LA DIFFICULTÉ</h2>
+        <select id="difficulty-selector" style="font-size: 1.2em; padding: 10px; border-radius: 5px;">
+            <option value="easy">Facile (2s)</option>
+            <option value="normal" selected>Normal (1s)</option>
+            <option value="hard">Difficile (0.75s)</option>
+            <option value="expert">Expert (0.5s)</option>
+        </select>
         <button id="start-button" class="action-button">START GAME</button>
     </div>
 
@@ -144,21 +152,31 @@
         const startScreen = document.getElementById('start-screen'); 
         const finalScoreDisplay = document.getElementById('final-score');
         const restartButton = document.getElementById('restart-button');
-        const startButton = document.getElementById('start-button'); 
+        const startButton = document.getElementById('start-button');
+        const difficultySelector = document.getElementById('difficulty-selector');
+        
         
         let moveTimer;      
         let gameTimer;      
         let timerInterval;  
         let score = 0;
         
-        const DELAY = 1000; 
-        const GAME_TIME = 1000; 
+        let currentDelay = 1000; 
+        let currentVisibleTime = 1000;
         const GAME_DURATION = 60; 
         let timeRemaining = GAME_DURATION;
         
         let isTargetActive = false;
         let isGameRunning = false; 
-        
+
+        const DIFFICULTY_SETTINGS = {
+            easy: { delay: 2000, visible: 1500 },
+            normal: { delay: 1000, visible: 1000 },
+            hard: { delay: 750, visible: 750 },
+            expert: { delay: 500, visible: 500 }
+        };
+
+        // --- VARIÁVEIS DE ÁUDIO ---
         let audioSuccess = null; 
         let audioError = null;   
         let audioEnd = null;     
@@ -169,21 +187,22 @@
             if (audioLoaded) return;
             
             // Inicializa os objetos Audio
-            // GARANTA QUE ESSES NOMES ESTÃO EXATAMENTE IGUAIS AOS SEUS ARQUIVOS:
             audioSuccess = new Audio('./audio/success.wav');
             audioError = new Audio('./audio/error.wav');
             audioEnd = new Audio('./audio/timeup.wav');
+
+            audioEnd.volume = 0.8;
 
             // --- SOLUÇÃO DE FORÇA BRUTA PARA O AUTO-PLAY ---
             // Tenta dar play no som de sucesso. Se o navegador bloquear, ele cai no 'catch'.
             // Não usamos mais volume 0, apenas tentamos o play normal, que é ativado
             // pelo clique do usuário no botão "START GAME" (que chama loadAudio()).
             audioSuccess.play().then(() => {
-                // Sucesso: Áudio está liberado.
                 audioLoaded = true;
             }).catch(e => {
+                // O navegador BLOQUEOU a reprodução automática.
                 console.warn("Navegador bloqueou a reprodução automática. O som será ativado no primeiro acerto válido.");
-                audioLoaded = true;
+                audioLoaded = true; // Marca como carregado para não tentar o load de novo
             });
         }
 
@@ -250,13 +269,21 @@
             showGameHUD(false); 
 
             // Toca o som de fim de jogo
-            if(audioEnd) { audioEnd.play(); } // Verificação de segurança
+            if(audioEnd) { audioEnd.play(); }
             
             startScreen.style.display = 'none'; 
         }
         
         function resetGame() {
+            // 1. CARREGAR DIFICULDADE SELECIONADA
             loadAudio();
+            const selectedDifficulty = difficultySelector.value;
+            const settings = DIFFICULTY_SETTINGS[selectedDifficulty];
+
+            currentDelay = settings.delay;
+            currentVisibleTime = settings.visible;
+            // FIM CARREGAMENTO DIFICULDADE
+            
             startScreen.style.display = 'none';
             endGameScreen.style.display = 'none';
 
@@ -288,7 +315,8 @@
             targetDot.style.opacity = '1';
             targetDot.classList.add('blinking');
             
-            gameTimer = setTimeout(missTarget, GAME_TIME);
+            // Usa o tempo dinâmico
+            gameTimer = setTimeout(missTarget, currentVisibleTime);
         }
 
         function missTarget() {
@@ -300,8 +328,6 @@
             
             targetDot.style.opacity = '0';
             targetDot.classList.remove('blinking');
-            
-            // Toca o som de ERRO (NOVO!)
             if(audioError) {
                 audioError.currentTime = 0;
                 audioError.play();
@@ -322,8 +348,6 @@
 
             targetDot.style.opacity = '0';
             targetDot.classList.remove('blinking');
-
-            // Toca o som de ACERTO
             if(audioSuccess) {
                 audioSuccess.currentTime = 0;
                 audioSuccess.play();
@@ -351,7 +375,7 @@
             }
             
             if (isGameRunning && !isTargetActive) {
-                moveTimer = setTimeout(() => launchNewTarget(x, y), DELAY);
+                moveTimer = setTimeout(() => launchNewTarget(x, y), currentDelay);
             }
         });
 

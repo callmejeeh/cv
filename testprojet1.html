@@ -3,55 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cursor Mapping</title>
+    <title>Coordinates</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            height: 100vh; 
             margin: 0;
-            background-color: #e0f7fa;
+            background-color: #f4f4f4;
         }
         #coordenadas {
-            font-size: 1.8em;
-            padding: 25px 40px;
-            border: 3px solid #00bcd4;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            text-align: center;
+            position: absolute;
+            font-size: 1em;
+            padding: 10px;
+            background-color: #4a00d4;
+            color: white;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            transform: translate(15px, 15px); 
         }
         strong {
-            color: #d81b60;
+            color: #3bb7ff;
         }
     </style>
 </head>
 <body>
 
     <div id="coordenadas">
-        Cursor's coordinates (X: 0, Y: 0)
+        X: 0 | Y: 0
     </div>
 
     <script>
-        // Obtém a referência do elemento HTML pra coordenada
         const coordsDisplay = document.getElementById('coordenadas');
+        let moveTimer; // Variável para armazenar o ID do timer
+        const DELAY = 500;
 
-        // detecta o movimento do mouse
         document.addEventListener('mousemove', function(event) {
             
-            // event.clientX: retorna a X
-            const x = event.clientX;
+            // 1. Lógica de Debounce (Atraso)
             
-            // event.clientY: Retorna y
+            clearTimeout(moveTimer);
+            coordsDisplay.style.opacity = '0';
+            
+            // Armazena as posições X e Y
+            const x = event.clientX;
             const y = event.clientY;
 
-            // Atualiza o conteúdo do div
-            coordsDisplay.innerHTML = `
-                Coordenadas do Cursor:<br>
-                X: <strong>${x}</strong> | Y: <strong>${y}</strong>
-            `;
+            moveTimer = setTimeout(function() {
+                
+                // 2. Lógica de Posicionamento e Conteúdo
+
+                coordsDisplay.innerHTML = `
+                    X: <strong>${x}</strong> | Y: <strong>${y}</strong>
+                `;
+                // Posiciona o div próximo ao cursor
+                coordsDisplay.style.left = `${x}px`;
+                coordsDisplay.style.top = `${y}px`;
+
+                coordsDisplay.style.opacity = '1';
+                
+            }, DELAY);
         });
     </script>
 

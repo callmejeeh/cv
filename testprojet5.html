@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catch the Dot - Test de Réflexes</title>
+    <title>Catch the Dot</title>
     <style>
         body {
             height: 100vh;
@@ -13,6 +13,7 @@
             overflow: hidden; 
         }
 
+        /* FEEDBACK DE ACERTO/ERRO */
         #coordenadas {
             position: absolute;
             font-size: 1.2em;
@@ -21,7 +22,7 @@
             color: white;
             border-radius: 5px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
-            pointer-events: none; 
+            pointer-events: none; /* ESSENCIAL: Impede que este div bloqueie o clique */
             opacity: 0;
             transition: opacity 0.2s;
             z-index: 1000;
@@ -30,6 +31,7 @@
             font-weight: bold;
         }
         
+        /* ALVO CLICÁVEL */
         #blinking-dot {
             position: absolute;
             width: 30px;
@@ -52,6 +54,8 @@
         .blinking {
             animation: blink 0.5s infinite alternate;
         }
+
+        /* Pontuação e Timer (HUD do Jogo) */
         #score-display, #game-timer {
             position: fixed;
             top: 20px;
@@ -68,6 +72,7 @@
         #score-display { right: 20px; }
         #game-timer { left: 20px; color: #d89c25; }
 
+        /* Telas de Início e Fim de Jogo (Modais) */
         #start-screen, #end-game-screen {
             position: fixed;
             top: 0;
@@ -82,6 +87,7 @@
             align-items: center;
             text-align: center;
             z-index: 3000;
+            /* NOVO: Remove a capacidade de clicar através do modal, mas permite que o conteúdo do modal seja clicado */
             pointer-events: all;
         }
         #end-game-screen {
@@ -113,20 +119,20 @@
     <div id="coordenadas"></div>
     <div id="blinking-dot"></div>
     <div id="score-display">Score: 0</div>
-    <div id="game-timer">Temps: 60s</div>
+    <div id="game-timer">Tempo: 60s</div>
 
     <div id="start-screen">
         <h1>Catch the Dot</h1>
-        <p>Stop the cursor for 2 seconds to make a target appear</p>
-        <p>Test your reflexes for 60 seconds!</p>
-        <button id="start-button" class="action-button">Start</button>
+        <p>Arrêtez la souris pendant 1 seconde pour faire apparaître la cible et cliquez dessus avant qu'elle ne disparaisse !</p>
+        <p>Testez vos reflexes pendant 60 secondes.</p>
+        <button id="start-button" class="action-button">START GAME</button>
     </div>
 
     <div id="end-game-screen">
-        <h1>Time's over!</h1>
-        <p>You've got</p>
+        <h1>C'EST FINI</h1>
+        <p>Votre score :</p>
         <div id="final-score">0 POINTS</div>
-        <button id="restart-button" class="action-button">Play again</button>
+        <button id="restart-button" class="action-button">RECOMMENCER</button>
     </div>
 
     <script>
@@ -140,18 +146,49 @@
         const restartButton = document.getElementById('restart-button');
         const startButton = document.getElementById('start-button'); 
         
-        let moveTimer;      
-        let gameTimer;      
-        let timerInterval;  
+        let moveTimer;      
+        let gameTimer;      
+        let timerInterval;  
         let score = 0;
         
-        const DELAY = 2000; 
+        const DELAY = 1000; 
         const GAME_TIME = 1000; 
         const GAME_DURATION = 60; 
         let timeRemaining = GAME_DURATION;
         
         let isTargetActive = false;
         let isGameRunning = false; 
+        
+        let audioSuccess = null; 
+        let audioError = null;   
+        let audioEnd = null;     
+        let audioLoaded = false;
+
+        // Carrega os arquivos de áudio
+        function loadAudio() {
+            if (audioLoaded) return;
+            
+            // Inicializa os objetos Audio
+            // GARANTA QUE ESSES NOMES ESTÃO EXATAMENTE IGUAIS AOS SEUS ARQUIVOS:
+            audioSuccess = new Audio('./audio/success.wav');
+            audioError = new Audio('./audio/error.wav');
+            audioEnd = new Audio('./audio/timeup.wav');
+
+            // --- SOLUÇÃO DE FORÇA BRUTA PARA O AUTO-PLAY ---
+            // Tenta dar play no som de sucesso. Se o navegador bloquear, ele cai no 'catch'.
+            // Não usamos mais volume 0, apenas tentamos o play normal, que é ativado
+            // pelo clique do usuário no botão "START GAME" (que chama loadAudio()).
+            audioSuccess.play().then(() => {
+                // Sucesso: Áudio está liberado.
+                audioLoaded = true;
+            }).catch(e => {
+                console.warn("Navegador bloqueou a reprodução automática. O som será ativado no primeiro acerto válido.");
+                audioLoaded = true;
+            });
+        }
+
+
+        // --- FUNÇÕES DE CONTROLE E JOGO ---
 
         function updateFeedback(message, color, x, y) {
             feedbackDisplay.style.backgroundColor = color;
@@ -167,7 +204,9 @@
         }
 
         function updateScoreDisplay() {
-            scoreDisplay.innerHTML = `Score: ${score}`;
+            // Se necessário, ajuste para singular/plural
+            let unit = (score <= 1) ? "point" : "points"; 
+            scoreDisplay.innerHTML = `Score : ${score} ${unit}`;
         }
         
         function showGameHUD(show) {
@@ -210,10 +249,14 @@
             endGameScreen.style.display = 'flex';
             showGameHUD(false); 
 
+            // Toca o som de fim de jogo
+            if(audioEnd) { audioEnd.play(); } // Verificação de segurança
+            
             startScreen.style.display = 'none'; 
         }
         
         function resetGame() {
+            loadAudio();
             startScreen.style.display = 'none';
             endGameScreen.style.display = 'none';
 
@@ -223,7 +266,7 @@
             isGameRunning = false; 
             
             updateScoreDisplay(); 
-            timerDisplay.innerHTML = `Temps: ${GAME_DURATION}s`;
+            timerDisplay.innerHTML = `Temps : ${GAME_DURATION}s`;
 
             targetDot.style.opacity = '1'; 
             targetDot.classList.remove('blinking');
@@ -257,11 +300,17 @@
             
             targetDot.style.opacity = '0';
             targetDot.classList.remove('blinking');
+            
+            // Toca o som de ERRO (NOVO!)
+            if(audioError) {
+                audioError.currentTime = 0;
+                audioError.play();
+            }
 
-            updateFeedback("Time's up", 'red', x, y);
+            updateFeedback("Temps écoulé !", 'red', x, y);
         }
 
-        // --- GESTÃO DE EVENTOS ---
+        // --- HANDLERS DE EVENTOS ---
 
         targetDot.addEventListener('click', function(event) {
             if (!isGameRunning || !isTargetActive) return; 
@@ -273,8 +322,14 @@
 
             targetDot.style.opacity = '0';
             targetDot.classList.remove('blinking');
+
+            // Toca o som de ACERTO
+            if(audioSuccess) {
+                audioSuccess.currentTime = 0;
+                audioSuccess.play();
+            }
             
-            updateFeedback("Congrats!", 'lime', event.clientX, event.clientY);
+            updateFeedback("Touché ! (+1 point)", 'lime', event.clientX, event.clientY);
         });
 
         restartButton.addEventListener('click', resetGame);
@@ -296,14 +351,13 @@
             }
             
             if (isGameRunning && !isTargetActive) {
-                 moveTimer = setTimeout(() => launchNewTarget(x, y), DELAY);
+                moveTimer = setTimeout(() => launchNewTarget(x, y), DELAY);
             }
         });
+
+        // --- INICIALIZAÇÃO ---
 
         showGameHUD(false);
         targetDot.style.opacity = '0'; 
 
     </script>
-
-</body>
-</html>
