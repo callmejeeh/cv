@@ -13,7 +13,7 @@
             overflow: hidden; 
         }
 
-        /* FEEDBACK DE ACERTO/ERRO */
+        /* FEEDBACK */
         #coordenadas {
             position: absolute;
             font-size: 1.2em;
@@ -22,7 +22,7 @@
             color: white;
             border-radius: 5px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
-            pointer-events: none; /* ESSENCIAL: Impede que este div bloqueie o clique */
+            pointer-events: none; 
             opacity: 0;
             transition: opacity 0.2s;
             z-index: 1000;
@@ -31,13 +31,13 @@
             font-weight: bold;
         }
         
-        /* ALVO CLICÁVEL */
+        /* Cible */
         #blinking-dot {
             position: absolute;
             width: 30px;
             height: 30px;
-            background-color: #9c2551; 
-            border: 3px solid #bd7dd8;
+            background-color: #25639c; 
+            border: 3px solid #330666;
             border-radius: 50%;
             opacity: 0;
             transition: opacity 0.2s, transform 0.1s;
@@ -55,7 +55,7 @@
             animation: blink 0.5s infinite alternate;
         }
 
-        /* Pontuação e Timer (HUD do Jogo) */
+        /* HUD */
         #score-display, #game-timer {
             position: fixed;
             top: 20px;
@@ -96,7 +96,7 @@
         .action-button {
             padding: 15px 30px;
             font-size: 1.5em;
-            background-color: #9c2551;
+            background-color: #147759;
             color: white;
             border: none;
             border-radius: 8px;
@@ -105,7 +105,7 @@
             margin-top: 20px;
         }
         .action-button:hover {
-            background-color: #d81b60;
+            background-color: #052941;
         }
         #final-score {
             font-size: 4em;
