@@ -11,3 +11,23 @@
 * **Outil utilisé :** Gemini
 * **Défi :** La logique **JavaScript**.
 * **Résultat :** J'ai sollicité l'aide de **Gemini** pour comprendre la logique de l'event 'setTimeOut', le même ami a ensuite revu le code et ajouté des commentaires pour clarifier chaque partie pour moi.
+
+```mermaid
+---
+config:
+  theme: redux
+---
+flowchart TB
+    A(["Commencer"]) --> B{"Sélectionner difficulté"}
+    B --> C["Easy"] & D["Medium"] & E["Hard"] & F["Expert"]
+    C --> G["Montrer HUD"]
+    D --> G
+    E --> G
+    F --> G
+    G --> H["Countdown"]
+    H --> I["Montrer cible"]
+    I --> J["Cliquer"] & K["Temps écoulé"]
+    J --> L["Temps terminé"]
+    K --> L
+    L --> M["Recommencer"]
+    M --> A

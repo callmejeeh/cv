@@ -223,7 +223,6 @@
         }
 
         function updateScoreDisplay() {
-            // Se necessário, ajuste para singular/plural
             let unit = (score <= 1) ? "point" : "points"; 
             scoreDisplay.innerHTML = `Score : ${score} ${unit}`;
         }
@@ -268,7 +267,6 @@
             endGameScreen.style.display = 'flex';
             showGameHUD(false); 
 
-            // Toca o som de fim de jogo
             if(audioEnd) { audioEnd.play(); }
             
             startScreen.style.display = 'none'; 
