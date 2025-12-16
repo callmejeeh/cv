@@ -13,23 +13,3 @@
 * **Outil utilisé :** Gemini
 * **Défi technique :** La logique **JavaScript** de la gestion dynamique des variables. J'ai sollicité l'aide pour structurer la logique de **nivellement** et implémenter le changement des délais de jeu en fonction du choix de l'utilisateur.
 * **Traduction :** Comme les commentaires faits par mon ami qui m'a aidé étaient en portugais et je les trouve très pertinents, j'ai utilisé Gemini pour les traduire et ne rien oublier. Aussi, Gemini m'a aidé à trouver des phrases en anglais ou portugais dans le jeu que j'aurais pu oublier.
-
-```mermaid
----
-config:
-  theme: redux
----
-flowchart TB
-    A(["Commencer"]) --> B{"Sélectionner difficulté"}
-    B --> C["Easy"] & D["Medium"] & E["Hard"] & F["Expert"]
-    C --> G["Montrer HUD"]
-    D --> G
-    E --> G
-    F --> G
-    G --> H["Countdown"]
-    H --> I["Montrer cible"]
-    I --> J["Cliquer"] & K["Temps écoulé"]
-    J --> L["Temps terminé"]
-    K --> L
-    L --> M["Recommencer"]
-    M --> A
